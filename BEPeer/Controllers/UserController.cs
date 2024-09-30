@@ -70,7 +70,7 @@ namespace BEPeer.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "admin")]
+        
         public async Task<IActionResult> GetAllUser()
         {
             try
@@ -128,8 +128,8 @@ namespace BEPeer.Controllers
             }
         }
 
-        [HttpPut("{userid}")]
-        [Authorize(Roles = "admin")]
+        [HttpPut("{userId}")]
+        
         public async Task<IActionResult> Update(string userId, ReqUpdateUserDto reqUpdate)
         {
             try
@@ -193,6 +193,32 @@ namespace BEPeer.Controllers
                     Data = null
                 });
             }
+        }
+
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetUser(string userId)
+        {
+            
+                try
+                {
+                    var users = await _userServices.GetUserById(userId);
+                    return Ok(new ResBaseDto<ResUserLoanDto>
+                    {
+                        Success = true,
+                        Message = "Get by Id of user successfully",
+                        Data = users
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new ResBaseDto<List<ResUserDto>>
+                    {
+                        Success = false,
+                        Message = ex.Message,
+                        Data = null
+                    });
+                }
+            
         }
     }
 }

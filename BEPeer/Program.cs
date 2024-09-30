@@ -18,6 +18,17 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
     options.SuppressModelStateInvalidFilter = true;
 });
 
+// CORS Configuration
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigins", policy =>
+    {
+        policy.WithOrigins("http://localhost:7239")
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -44,7 +55,7 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
-        Description = "Please enter JWT wirh bearer into the field",
+        Description = "Please enter JWT with bearer into the field",
         Name = "Authorization",
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
@@ -74,10 +85,11 @@ builder.Services.AddDbContext<PostgresContext>(options =>
 
 builder.Services.AddScoped<IUserServices, UserServices>();
 builder.Services.AddScoped<ILoanServices, LoanServices>();
+builder.Services.AddScoped<ILenderServices, LenderServices>();
 
 var app = builder.Build();
 
-//Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -86,9 +98,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); 
-app.UseAuthorization();
+// Apply CORS policy
+app.UseCors("AllowSpecificOrigins");
 
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

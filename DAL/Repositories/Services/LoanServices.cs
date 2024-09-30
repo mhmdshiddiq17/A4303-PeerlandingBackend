@@ -41,23 +41,21 @@ namespace DAL.Repositories.Services
         public async Task<List<ResListLoanDto>> LoanList(string status)
         {
             //var statusLoans = await _postgresContext.MstLoans.SingleOrDefaultAsync(loans => loans.User == Status);
-            
-            
-                var loans = await _postgresContext.MstLoans.Include(l =>
-                 l.User).Where(loan => status == null || loan.Status == status).OrderByDescending(loan => loan.CreatedAt).Select(loan => new ResListLoanDto
-                 {
-                     LoanId = loan.Id,
-                     BorrowName = loan.User.Name,
-                     Amount = loan.Amount,
-                     InterestRate = loan.InterestRate,
-                     Duration = loan.Duration,
-                     Status = loan.Status,
-                     CreatedAt = loan.CreatedAt,
-                     UpdatedAt = loan.UpdatedAt,
-                 }).ToListAsync();
-                return loans;
-            
-            
+
+
+            return await _postgresContext.MstLoans
+            .Where(loan => loan.Status == "requested" || loan.Status == "funded")
+            .Select(loan => new ResListLoanDto
+            {
+                LoanId = loan.Id,
+                BorrowName = loan.User.Name,
+                Amount = loan.Amount,
+                InterestRate = loan.InterestRate,
+                Duration = loan.Duration,
+                Status = loan.Status
+            }).ToListAsync();
+
+
         }
 
 
@@ -78,5 +76,65 @@ namespace DAL.Repositories.Services
             return loanUpdate.Status;
 
         }
+        public async Task<ResListLoanDto> GetLoanById(string loanId)
+        {
+            var loan = await _postgresContext.MstLoans
+                .Include(l => l.User)
+                .SingleOrDefaultAsync(l => l.Id == loanId);
+
+            if (loan == null)
+            {
+                throw new Exception("Loan not found");
+            }
+
+            var result = new ResListLoanDto
+            {
+                LoanId = loan.Id,
+                UserLoan = new UserLoan
+                {
+                    Id = loan.User.Id,
+                    Name = loan.User.Name
+                },
+                Amount = loan.Amount,
+                InterestRate = loan.InterestRate,
+                Duration = loan.Duration,
+                Status = loan.Status,
+                CreatedAt = loan.CreatedAt,
+                UpdatedAt = loan.UpdatedAt,
+            };
+
+            return result;
+        }
+        public async Task<List<ResListLoanDto>> GetAllLoansByUserId(string status, string userId)
+        {
+            var loansQuery = _postgresContext.MstLoans
+                .Include(l => l.User)
+                .Select(loan => new ResListLoanDto
+                {
+                    LoanId = loan.Id,
+                    UserLoan = new UserLoan
+                    {
+                        Id = loan.User.Id,
+                        Name = loan.User.Name
+                    },
+                    Amount = loan.Amount,
+                    InterestRate = loan.InterestRate,
+                    Duration = loan.Duration,
+                    Status = loan.Status,
+                    CreatedAt = loan.CreatedAt,
+                    UpdatedAt = loan.UpdatedAt,
+                })
+                .Where(loan => loan.UserLoan.Id == userId);
+
+            if (!string.IsNullOrEmpty(status))
+            {
+                loansQuery = loansQuery.Where(loan => loan.Status == status);
+            }
+
+            loansQuery = loansQuery.OrderBy(loan => loan.CreatedAt);
+
+            return await loansQuery.ToListAsync();
+        }
+
     }
 }

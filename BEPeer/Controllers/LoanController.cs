@@ -3,6 +3,7 @@ using DAL.DTO.Res;
 using DAL.Models;
 using DAL.Repositories.Services;
 using DAL.Repositories.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
@@ -22,6 +23,7 @@ namespace BEPeer.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "borrower")]
         public async Task<IActionResult> NewLoan(ReqLoanDto loan)
         {
             try
@@ -63,6 +65,7 @@ namespace BEPeer.Controllers
             }
         }
         [HttpPut]
+        //[Authorize]
         public async Task<IActionResult> UpdateLoan(string userId, ReqUpdateLoanDto loanUpdate)
         {
 
@@ -71,7 +74,7 @@ namespace BEPeer.Controllers
                 var response = await _loanServices.UpdateLoan(userId, loanUpdate);
 
                 
-                if (loanUpdate.Status == "done")
+                if (loanUpdate.Status == "funded")
                 {
                     return Ok(new ResBaseDto<object>
                     {
@@ -140,5 +143,55 @@ namespace BEPeer.Controllers
                 });
             }
         }
+        [HttpGet("getById/{loanId}")]
+        [Authorize]
+        public async Task<IActionResult> GetLoanById(string loanId)
+        {
+            try
+            {
+                var response = await _loanServices.GetLoanById(loanId);
+                return Ok(new ResBaseDto<object>
+                {
+                    Data = response,
+                    Success = true,
+                    Message = "Success Loan"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResBaseDto<string>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Data = null
+                });
+            }
+        }
+        [HttpGet("{userId}")]
+        [Authorize]
+        public async Task<IActionResult> GetAllLoanByUserId(string userId, [FromQuery] string status = null)
+        {
+            try
+            {
+                var response = await _loanServices.GetAllLoansByUserId(status, userId);
+                return Ok(new ResBaseDto<object>
+                {
+                    Data = response,
+                    Success = true,
+                    Message = "Success Get All Loans"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResBaseDto<string>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Data = null
+                });
+            }
+        }
+
+
     }
 }

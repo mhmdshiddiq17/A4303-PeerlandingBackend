@@ -1,20 +1,19 @@
-﻿using DAL.DTO.Req;
-using DAL.DTO.Res;
-using DAL.Models;
-using DAL.Repositories.Services.Interfaces;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using DAL.DTO.Req;
+using DAL.DTO.Res;
+using DAL.Models;
+using DAL.Repositories.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Query.ExpressionTranslators.Internal;
 
 namespace DAL.Repositories.Services
 {   
@@ -85,7 +84,11 @@ namespace DAL.Repositories.Services
             var token = GenerateJwtToken(user);
             var loginResponse = new ResLoginDto
             {
+                userId = user.Id,
                 Token = token,
+                Name = user.Name,
+                Role = user.Role,
+                Email = user.Email
             };
             return loginResponse;
         }
@@ -116,7 +119,7 @@ namespace DAL.Repositories.Services
         }
 
         
-        async Task<string> IUserServices.Update(string userId, ReqUpdateUserDto reqUpdate)
+        async Task<ResLoginDto> IUserServices.Update(string userId, ReqUpdateUserDto reqUpdate)
         {
             var existingUser = await _context.Users.SingleOrDefaultAsync(user => user.Id == userId);
             if(existingUser == null)
@@ -125,12 +128,19 @@ namespace DAL.Repositories.Services
             }
 
             existingUser.Name = reqUpdate.Name ?? existingUser.Name;
-            existingUser.Name = reqUpdate.Role ?? existingUser.Role;
+            existingUser.Role = reqUpdate.Role ?? existingUser.Role;
             existingUser.Balance = reqUpdate.Balance ?? existingUser.Balance;
             _context.Users.Update(existingUser);
             await _context.SaveChangesAsync();
+            
+            var resUpdate = new ResLoginDto
+            {
 
-            return reqUpdate.Name;
+                Name = existingUser.Name,
+                Role = existingUser.Role,
+                
+            };
+            return resUpdate;
         }
 
         public async Task<List<ResUserDto>> GetAllUser()
@@ -163,6 +173,21 @@ namespace DAL.Repositories.Services
             return userName;
         }
 
-
+        public async Task<ResUserLoanDto> GetUserById(string userId)
+        {
+            var user = await _context.Users.SingleOrDefaultAsync(x => x.Id == userId);
+            if(user == null)
+            {
+                throw new Exception("User Not Found");
+            }
+            var result = new ResUserLoanDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Role = user.Role,
+                Balance = user.Balance
+            };
+            return result;
+        }
     }
 }
